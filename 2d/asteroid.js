@@ -32,7 +32,7 @@ export default class Asteroid {
     _draw(ctx, x, y) {
         ctx.beginPath();
         ctx.save();
-        ctx.fillStyle = "#dddddd";
+        ctx.fillStyle = "#666666";
         // ctx.translate(this.position.x * ctx.canvas.width, this.position.y * ctx.canvas.height);
         ctx.translate(x * ctx.canvas.width, y * ctx.canvas.height);
         ctx.rotate(this.angle);

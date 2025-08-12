@@ -1,10 +1,11 @@
-import AsteroidsGame from "./game.js";
+import AsteroidsGame from "./2d/game.js";
 
 const canvas = document.createElement('canvas');
 document.body.append(canvas);
 document.body.style.display = "grid";
 document.body.style.margin = "0";
 document.body.style.minHeight = "100dvh";
+canvas.style.backgroundColor = "black";
 canvas.height = document.body.clientHeight;
 canvas.width = document.body.clientWidth;
 
