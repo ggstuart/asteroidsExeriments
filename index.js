@@ -1,8 +1,15 @@
-import AsteroidsGame from "./asteroids.js";
+import AsteroidsGame from "./game.js";
 
-const game = new AsteroidsGame(0.4);
+const canvas = document.createElement('canvas');
+document.body.append(canvas);
+document.body.style.display = "grid";
+document.body.style.margin = "0";
+document.body.style.minHeight = "100dvh";
+canvas.height = document.body.clientHeight;
+canvas.width = document.body.clientWidth;
+
+const game = new AsteroidsGame(canvas, 0.4);
 game.reset(2);
-game.draw();
 
 let p;
 function frame(ts) {
