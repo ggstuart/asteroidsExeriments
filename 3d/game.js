@@ -1,5 +1,6 @@
 
-
+// this mat4 to manage the matrix (we can do it manually)
+import { mat4 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
 function _createCanvas() {
     const canvas = document.createElement('canvas');
@@ -28,22 +29,66 @@ export default class AsteroidsGame {
 
         // this.renderPipeline = ???
 
+        this.angleX = 0;
+        this.angleY = 0;
+        this.distance = 2;
 
+        this.isDragging = false;
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+
+        this._initMouseControls();
 
 
     }
 
+    _initMouseControls() {
+        this.canvas.addEventListener("mousedown", (e) => {
+            this.isDragging = true;
+            this.lastMouseX = e.clientX;
+            this.lastMouseY = e.clientY;
+        });
 
-    createBackground(path) {
+        window.addEventListener("mouseup", () => {
+            this.isDragging = false;
+        });
 
+        window.addEventListener("mousemove", (e) => {
+            if (!this.isDragging) return;
+
+            const dx = e.clientX - this.lastMouseX;
+            const dy = e.clientY - this.lastMouseY;
+
+            this.angleY += dx * 0.005; 
+            this.angleX += dy * 0.005;
+
+            this.lastMouseX = e.clientX;
+            this.lastMouseY = e.clientY;
+        });
+
+        this.canvas.addEventListener("wheel", (e) => {
+            this.distance += e.deltaY * 0.01;
+            this.distance = Math.max(0.5, Math.min(5, this.distance));
+        });
     }
+
+
+
+    // createBackground(path) {
+
+    // }
 
     async reset(nAsteroids, noise) {
+        this.mvpBuffer = this.gpu.createImageBuffer();
         this.starBackground = await this.gpu.createBackground({
-            image: '3d/images/stars.jpg',
-            shader: '3d/shaders/background.wgsl'
+            // image: '3d/images/test.jpg', //it was a test with 3d photo !! you can test it
+            image: '3d/images/test.jpg',
+            shader: '3d/shaders/background.wgsl',
+            mvpBuffer : this.mvpBuffer
         })
 
+        this.angleX = 0;
+        this.angleY = 0;
         // this.starBackgroundTexture = await this.gpu.createTexture('3d/images/stars.jpg');
         // this.starBackgroundBuffer = this.gpu.createImageBuffer();
         // this.starBackgroundSampler = this.gpu.createSampler();
@@ -82,8 +127,40 @@ export default class AsteroidsGame {
         
     }
 
-    update() {
-        //move things? Compute shader?
+    update(elapsed) {
+        // to make automatic rotation (can be removed)
+        this.angleY += elapsed * 0.1;
+        this.angleX += elapsed * 0.05;
+
+        // create identity matrix
+        const model = mat4.create();
+        // rotate on x
+        mat4.rotateX(model, model, this.angleX);
+        // rotate on Y
+        mat4.rotateY(model, model, this.angleY);
+        // to show inside the sphere
+        mat4.scale(model, model, [-1, 1, 1]);
+
+
+
+        // crete the view matrix
+        const view = mat4.create();
+
+
+        // create the projection matrix
+        const projection = mat4.create();
+        mat4.perspective(projection, Math.PI / 2, this.canvas.width / this.canvas.height, 0.1, 2000);
+
+
+        // create the model view proction matrix = the final one to calculate the procduct
+        const mvp = mat4.create();
+        // mvp = projection*view
+        // mvp = mvp*model= projection*view*model
+        mat4.multiply(mvp, projection, view);
+        mat4.multiply(mvp, mvp, model);
+        // we create the matrix on our buffer
+        this.gpu.device.queue.writeBuffer(this.mvpBuffer, 0, mvp);
+            //move things? Compute shader?
     }
 
     draw() {
