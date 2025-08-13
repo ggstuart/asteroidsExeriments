@@ -1,3 +1,4 @@
+import { mat4 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js';
 
 
 
@@ -13,81 +14,81 @@ function _createCanvas() {
     return canvas;
 }
 
+class Controls {
+    constructor() { 
+        this.keys = { 'a': false, 's': false, 'd': false, 'w': false };
+        window.addEventListener('keydown', ev => this.keys[ev.key] = true);
+        window.addEventListener('keyup', ev => this.keys[ev.key] = false);
+    }
+
+    get x() {
+        return this.keys.d - this.keys.a;
+    }
+    get y() {
+        return this.keys.s - this.keys.w;
+    }
+}
+
 export default class AsteroidsGame {
     constructor(gpu) { 
+        // console.log("game constructor");
+        
         this.gpu = gpu;       
         this.canvas = _createCanvas();
         this.ctx = this.gpu.createContext(this.canvas, 'opaque')
-        // create device?
-        // some external object?
-        
-        // this.device = ??? requires lots of stuff in this class
-
-        // this.renderer = new Renderer()? push details out to another class
-        // this.computer = new Computer()?
-
-        // this.renderPipeline = ???
-
-
-
-
+        this.controls = new Controls();
+        this.angle = { x: 0, y: 0, z: 0 };
+        this.rotation = { x: 0, y: 0, z: 0 };
+        const fov = 60 * Math.PI / 180
+        const aspect = this.canvas.width / this.canvas.height;
+        const near = 0.1;
+        const far = 100;
+        this.perspective = mat4.perspective(fov, aspect, near, far);
     }
 
-
-    createBackground(path) {
-
-    }
 
     async reset(nAsteroids, noise) {
+
         this.starBackground = await this.gpu.createBackground({
             image: '3d/images/stars.jpg',
-            shader: '3d/shaders/background.wgsl'
-        })
+            shader: '3d/shaders/cubeMap.wgsl'
+        });
 
-        // this.starBackgroundTexture = await this.gpu.createTexture('3d/images/stars.jpg');
-        // this.starBackgroundBuffer = this.gpu.createImageBuffer();
-        // this.starBackgroundSampler = this.gpu.createSampler();
-
-        // this.starBackgroundRenderPipeline = this.gpu.createRenderPipeline({
-        //     layout: "auto",
-        //     vertex: {
-        //         module,
-        //         entryPoint: "vsMain"
-        //     },
-        //     fragment: {
-        //         module,
-        //         entryPoint: "fsMain",
-        //         targets: this.ui.targets
-        //     },
-        //     primitive: { topology: "triangle-list" }
-        // });
-
-        // this.starBackgroundBindGroup = this.gpu.createBindGroup({
-        //     label: `update ${collection.label} bindGroup`,
-        //     layout: updatePipeline.getBindGroupLayout(1),
-        //     entries: [
-        //         { binding: 0, resource: { buffer: updateBuffer } },
-        //         { binding: 1, resource: { buffer: this.frameBuffer } }
-        //     ],
-        // });
-        //create asteroid data?
-        // this.background = this.createBackground('3d/images/stars.jpg');
-        // this.background.texture
-        // this.background.sampler
-        // this.background.buffer
-        // this.backgroundBuffer = ??
-        // this.backgroundSampler = ??
-
-        console.log(this.starBackground);
-        
     }
 
-    update() {
-        //move things? Compute shader?
+    update(elapsed) {
+        // console.log(elapsed);
+        
+        
+        this.rotation.x += this.controls.x * elapsed;
+        this.rotation.y += this.controls.y * elapsed;
+
+        this.angle.x += this.rotation.x * elapsed;
+        this.angle.y += this.rotation.y * elapsed;
+
+        // console.log(this.controls.x);
+        // console.log(this.angle);
+        
+        // mat4.identity(this.view); // replace with your camera's rotation
+        
+
+        // const proj = mat4.perspective(Math.PI / 2, this.canvas.width / this.canvas.height, 0.01, 100);
+        let view = mat4.create();
+        mat4.identity(view); // replace with your camera's rotation
+        view = mat4.rotateX(view, this.angle.y);
+        view = mat4.rotateY(view, this.angle.x);
+        view = mat4.rotateZ(view, this.angle.z);
+        const viewProjMatrix = mat4.multiply(this.perspective, view);
+        this.gpu.device.queue.writeBuffer(this.starBackground.buffer, 0, viewProjMatrix.buffer, viewProjMatrix.byteOffset, 64);
+
+        
+
     }
 
     draw() {
-        this.gpu.pass(this.ctx.getCurrentTexture().createView(), (pass) => {
+        console.log("game draw");
+
+        this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
         });
 

@@ -1,3 +1,5 @@
+import Background from "./background.js";
+
 export default class WebGPU {
 
     static async init() {
@@ -23,6 +25,31 @@ export default class WebGPU {
             alphaMode
         });
         return ctx;
+    }
+
+    async createCubeTexture(facePaths) {
+        // facePaths: [px, nx, py, ny, pz, nz]
+        const bitmaps = await Promise.all(facePaths.map(async (path) => {
+            const img = new Image();
+            img.src = path;
+            await img.decode();
+            const size = Math.min(img.width, img.height);
+            return await createImageBitmap(img, 0, 0, size, size);
+        }));
+        const size = bitmaps[0].width; // assume square faces
+        const texture = this.device.createTexture({
+            size: [size, size, 6],
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        for (let i = 0; i < 6; ++i) {
+            this.device.queue.copyExternalImageToTexture(
+                { source: bitmaps[i] },
+                { texture, origin: [0, 0, i] },
+                [size, size]
+            );
+        }
+        return texture;
     }
 
     async createTexture(path) {
@@ -66,77 +93,67 @@ export default class WebGPU {
         return this.device.createShaderModule({ code, label: path });
     }
 
-    async createRenderPipeline(shader) {
-        const module = await this.createShader(shader);
+    createRenderPipeline(vModule, vEntry, fModule, fEntry) {
         return this.device.createRenderPipeline({
             layout: "auto",
             vertex: {
-                module,
-                entryPoint: "vsMain"
+                module: vModule,
+                entryPoint: vEntry,
+                buffers: [
+                    {
+                        arrayStride: 12, // 3 * 4 bytes (vec3<f32>)
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: "float32x3"
+                            }
+                        ]
+                    }
+                ]
             },
             fragment: {
-                module,
-                entryPoint: "fsMain",
+                module: fModule,
+                entryPoint: fEntry,
                 targets: [{ format: this.format }]
             },
-            primitive: { topology: "triangle-list" }
+            primitive: {
+                topology: "triangle-list",
+                cullMode: "none" 
+            }
         });        
     }
 
-
-    async createBackground({image, shader}) {
-        const texture = await this.createTexture(image);
-        const buffer = this.createImageBuffer();
-        const sampler = this.createSampler();
-        const pipeline = await this.createRenderPipeline(shader);
-        const bindGroup = this.device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: buffer },
-                { binding: 1, resource: sampler },
-                { binding: 2, resource: texture.createView() }
-            ]
-        });
-        return new Background(pipeline, bindGroup);
+    createBindGroup(...args) { 
+        return this.device.createBindGroup(...args);
     }
 
-    pass(view, callback) {
+
+    async createBackground({ image, shader }) {
+        return Background.fromPaths(this, { image, shader });
+    }
+
+
+    render(view, callback) {
         const encoder = this.device.createCommandEncoder();
         const renderPass = encoder.beginRenderPass({
-            depthStencilAttachments: {
-                depthClearValue: 0.5,
-                depthLoadOp: 'clear',
-                depthStoreOp: "store",
-                view
-            },
+            // depthStencilAttachments: {
+            //     depthClearValue: 0.5,
+            //     depthLoadOp: 'clear',
+            //     depthStoreOp: "store",
+            //     view
+            // },
             colorAttachments: [{
                 view,
-                clearValue: [0, 0, 0, 1],
+                clearValue: [0, 1, 0, 1],
                 loadOp: "clear",
                 storeOp: "store"
             }]
         });
 
-        // renderPass.setPipeline(renderPipeline);
-        // renderPass.setBindGroup(0, renderBindGroup);
-        // renderPass.draw(??, ??);
         callback(renderPass);
         renderPass.end();        
         this.device.queue.submit([encoder.finish()]);
     }
 
-}
-
-class Background {
-    constructor(pipeline, bindGroup) {
-        this.pipeline = pipeline;
-        this.bindGroup = bindGroup;
-    }
-
-    draw(pass) {
-        pass.setPipeline(this.pipeline);
-        pass.setBindGroup(0, this.bindGroup);
-        // pass.draw(??, ??);
-
-    }
 }
