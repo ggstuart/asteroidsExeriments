@@ -1,5 +1,5 @@
 
-// this mat4 to manage the matrix (we can do it manually)
+// this mat4 to use the matrix (we can do it manually)
 import { mat4 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
 function _createCanvas() {
