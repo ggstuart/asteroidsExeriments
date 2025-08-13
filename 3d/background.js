@@ -17,6 +17,7 @@ export default class Background {
     }
 
     constructor(gpu, { texture, module }) {
+        this.gpu = gpu;
         this.texture = texture;
         this.buffer = gpu.createImageBuffer();
         this.sampler = gpu.createSampler();
@@ -37,6 +38,14 @@ export default class Background {
                 { binding: 2, resource: this.texture.createView({ dimension: "cube" }) }
             ]
         });
+    }
+
+    get queue() {
+        return this.gpu.device.queue;
+    }
+
+    writeBuffer(viewProjMatrix) {
+        this.queue.writeBuffer(this.buffer, 0, viewProjMatrix.buffer, viewProjMatrix.byteOffset, 64);
     }
 
     draw(pass) {
