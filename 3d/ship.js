@@ -14,6 +14,10 @@ export default class Ship {
 
         // This is clearly wrong
         // It should be calculated
+        if(this.controls.fov) {
+            this.camera.fov += this.controls.fov * elapsed;       
+        }
+
         this.rotation.x += this.controls.x * elapsed;
         this.rotation.y += this.controls.y * elapsed;
 
