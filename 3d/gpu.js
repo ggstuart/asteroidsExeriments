@@ -53,7 +53,7 @@ export default class WebGPU {
         })
     }
 
-    createSphereVertices(rad = 1, latSeg = 100000, longSeg = 10) {
+    createSphereVertices(rad = 1, latSeg = 100000, longSeg = 16) {
         // 5000  |||||||||||||||||||||||||||||||||||||||||||||||
         // 10 -- -- -- -- -- -- -- -- -- -- -- -- 
         // the purpose is to divide the sphere on parts 
