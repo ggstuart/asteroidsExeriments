@@ -25,14 +25,40 @@ export default class WebGPU {
         return ctx;
     }
 
-    async createTexture(path) {
+    async createCubeTexture(facePaths, format) {
+        const bitmaps = await Promise.all(facePaths.map(this.createSquareBitmap));
+        const size = bitmaps[0].width; // assume square faces
+        const texture = this.device.createTexture({
+            size: [size, size, 6],
+            format,
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        for (let i = 0; i < 6; ++i) {
+            this.device.queue.copyExternalImageToTexture(
+                { source: bitmaps[i] },
+                { texture, origin: [0, 0, i] },
+                [size, size]
+            );
+        }
+        return texture;
+    }
+
+    async createSquareBitmap(path) {
+        const image = new Image();
+        image.src = path;
+        await image.decode();
+        const size = Math.min(image.width, image.height);
+        return createImageBitmap(image, 0, 0, size, size);
+    }
+
+    async createTexture(path, format) {
         const image = new Image();
         image.src = path;
         await image.decode();
         const source = await createImageBitmap(image);
         const texture = this.device.createTexture({
             size: [source.width, source.height, 1],
-            format: "rgba8unorm",
+            format,
             usage: GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT            
