@@ -8,22 +8,37 @@ export default class Asteroid {
 
     }
 
-    createVertices() {
-        return new Float32Array([
-        // 36 vertices (12 triangles) for a cube, positions only
-            -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, // back
-            -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, // front
-            -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1, 1, -1, 1, 1, // top
-            -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, 1, // bottom
-            1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, // right
-            -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
-        ])        
+    createVertex(theta, phi, r) {
+        return [
+            Math.sin(theta) * Math.cos(phi) * r,
+            Math.sin(theta) * Math.sin(phi) * r,
+            Math.cos(theta) * r,
+        ]
+    }
+
+    createTriangle(theta, phi, r, segment) {
+        return [
+            this.createVertex(theta - segment / 2, phi - segment / 2, r),
+            this.createVertex(theta + segment / 2, phi - segment / 2, r),
+            this.createVertex(theta - segment / 2, phi + segment / 2, r)
+        ].flat()
+    }
+
+    createVertices(segments, size) {
+        const segment = 2 * Math.PI / segments;
+        const coords = Array.from({length: segments * segments}, (_, i) => {
+            const theta = segment * Math.floor(i / segments);
+            const phi = segment * i % segments;
+            return this.createTriangle(theta, phi, size, segment);
+        });
+        
+        return new Float32Array(coords.flat());
     }
 
     constructor(gpu, module, nAsteroids) {
         this.nAsteroids = nAsteroids;
         this.gpu = gpu;
-        this.vertices = this.createVertices();
+        this.vertices = this.createVertices(30, 1);
     
 
         this.instanceData = Array.from({length: nAsteroids}, _ => {
@@ -31,7 +46,7 @@ export default class Asteroid {
             tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
             tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
             tm = mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.translate(tm, [0, 0, 80 + Math.random() * 20]);
+            tm = mat4.translate(tm, [0, 0, 10 + Math.random() * 20]);
             return Array.from(mat4.transpose(tm));
         }).flat();
         this.projectionBuffer = gpu.createUniformBuffer(144);
