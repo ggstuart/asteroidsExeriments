@@ -48,7 +48,7 @@ export default class AsteroidsGame {
     }
 
     draw() {
-        console.log("game draw");
+        console.debug("game draw");
 
         this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
