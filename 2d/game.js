@@ -21,8 +21,6 @@ export default class AsteroidsGame {
     }
 
     draw() {       
-        // console.log(this.projectiles);
-        
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (const asteroid of this.asteroids) {
             asteroid.draw(this.ctx);
