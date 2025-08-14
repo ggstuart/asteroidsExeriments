@@ -73,12 +73,28 @@ export default class WebGPU {
         return texture;
     }
 
-    createImageBuffer() {
+    createUniformBuffer(size, mappedAtCreation=false) {
         return this.device.createBuffer({
-            size: 144,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: false
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
+    }
+
+    createStorageBuffer(size, mappedAtCreation=false) {
+        return this.device.createBuffer({
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        })
+    }
+
+    createVertexBuffer(size) {
+        return this.device.createBuffer({
+            size,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
+        });
     }
 
     createSampler() {
