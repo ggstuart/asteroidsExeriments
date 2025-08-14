@@ -8,10 +8,8 @@ export default class Asteroid {
 
     }
 
-    constructor(gpu, module, nAsteroids) {
-        this.nAsteroids = nAsteroids;
-        this.gpu = gpu;
-        this.vertices = new Float32Array([
+    createVertices() {
+        return new Float32Array([
         // 36 vertices (12 triangles) for a cube, positions only
             -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, // back
             -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, // front
@@ -19,7 +17,14 @@ export default class Asteroid {
             -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, 1, // bottom
             1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, // right
             -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
-        ]);
+        ])        
+    }
+
+    constructor(gpu, module, nAsteroids) {
+        this.nAsteroids = nAsteroids;
+        this.gpu = gpu;
+        this.vertices = this.createVertices();
+    
 
         this.instanceData = Array.from({length: nAsteroids}, _ => {
             let tm = mat4.identity();
@@ -65,7 +70,7 @@ export default class Asteroid {
         pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.bindGroup);
         pass.setVertexBuffer(0, this.vertexBuffer);
-        pass.draw(36, this.nAsteroids, 0, 0); // draw the cube
+        pass.draw(this.vertices.length / 3, this.nAsteroids, 0, 0); // draw the cube
     }
 
 }
