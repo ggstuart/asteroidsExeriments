@@ -17,7 +17,6 @@ fn vsMain(@location(0) position: vec3<f32>) -> VertexOutput {
 
 @fragment
 fn fsMain(input: VertexOutput) -> @location(0) vec4<f32> {
-    var result1 = textureSample(skyboxTexture, skyboxSampler, normalize(input.vDir));
-    var result2 = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-    return result1;
+    var result = textureSample(skyboxTexture, skyboxSampler, normalize(input.vDir));
+    return result;
 }

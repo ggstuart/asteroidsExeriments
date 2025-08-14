@@ -27,19 +27,12 @@ export default class WebGPU {
         return ctx;
     }
 
-    async createCubeTexture(facePaths) {
-        // facePaths: [px, nx, py, ny, pz, nz]
-        const bitmaps = await Promise.all(facePaths.map(async (path) => {
-            const img = new Image();
-            img.src = path;
-            await img.decode();
-            const size = Math.min(img.width, img.height);
-            return await createImageBitmap(img, 0, 0, size, size);
-        }));
+    async createCubeTexture(facePaths, format) {
+        const bitmaps = await Promise.all(facePaths.map(this.createSquareBitmap));
         const size = bitmaps[0].width; // assume square faces
         const texture = this.device.createTexture({
             size: [size, size, 6],
-            format: "rgba8unorm",
+            format,
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
         });
         for (let i = 0; i < 6; ++i) {
@@ -52,14 +45,22 @@ export default class WebGPU {
         return texture;
     }
 
-    async createTexture(path) {
+    async createSquareBitmap(path) {
+        const image = new Image();
+        image.src = path;
+        await image.decode();
+        const size = Math.min(image.width, image.height);
+        return createImageBitmap(image, 0, 0, size, size);
+    }
+
+    async createTexture(path, format) {
         const image = new Image();
         image.src = path;
         await image.decode();
         const source = await createImageBitmap(image);
         const texture = this.device.createTexture({
             size: [source.width, source.height, 1],
-            format: "rgba8unorm",
+            format,
             usage: GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT            

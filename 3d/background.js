@@ -11,7 +11,7 @@ export default class Background {
     ]);
 
     static async fromPaths(gpu, { image, shader }) {
-        const texture = await gpu.createCubeTexture([image, image, image, image, image, image]);
+        const texture = await gpu.createCubeTexture([image, image, image, image, image, image], "rgba8unorm");
         const module = await gpu.createShader(shader);
         return new Background(gpu, { texture, module })
     }
