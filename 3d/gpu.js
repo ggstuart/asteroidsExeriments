@@ -110,7 +110,7 @@ export default class WebGPU {
         return this.device.createShaderModule({ code, label: path });
     }
 
-    createRenderPipeline(vModule, vEntry, fModule, fEntry) {
+    createRenderPipeline(vModule, vEntry, fModule, fEntry, cullMode="none") {
         return this.device.createRenderPipeline({
             layout: "auto",
             vertex: {
@@ -136,7 +136,7 @@ export default class WebGPU {
             },
             primitive: {
                 topology: "triangle-list",
-                cullMode: "none" 
+                cullMode
             }
         });        
     }
