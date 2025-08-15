@@ -19,7 +19,7 @@ export default class Background {
     constructor(gpu, { texture, module }) {
         this.gpu = gpu;
         this.texture = texture;
-        this.buffer = gpu.createImageBuffer();
+        this.buffer = gpu.createUniformBuffer(144);
         this.sampler = gpu.createSampler();
         this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain");
         this.vertexBuffer = gpu.device.createBuffer({

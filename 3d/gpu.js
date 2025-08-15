@@ -71,55 +71,28 @@ export default class WebGPU {
         return texture;
     }
 
-    createImageBuffer() {
+    createUniformBuffer(size, mappedAtCreation=false) {
         return this.device.createBuffer({
-            size: 64,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            // mappedAtCreation: false
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
     }
 
-    createSphereVertices(rad = 1, latSeg = 100000, longSeg = 10) {
-        // 5000  |||||||||||||||||||||||||||||||||||||||||||||||
-        // 10 -- -- -- -- -- -- -- -- -- -- -- -- 
-        // the purpose is to divide the sphere on parts 
-
-        const vertices = [];
-        for (let y = 0; y <= latSeg; y++) {
-            // go from 0 to pi
-            const radAngle = y * Math.PI / latSeg;
-            const sinAngle = Math.sin(radAngle);
-            const cosAngle = Math.cos(radAngle);
-            // Now we fix the longitude segments
-            for (let x = 0; x <= longSeg; x++) {
-                // go from 0 to 2 pi
-                const phi = x * 2 * Math.PI / longSeg;
-                const sinPhi = Math.sin(phi);
-                const cosPhi = Math.cos(phi);
-
-                const vx = rad * sinAngle * cosPhi; //Position X long
-                const vy = rad * cosAngle; //position Y lat
-                const vz = rad * sinAngle * sinPhi; //posuition z deep
-                //to map the image on the sphere 
-                const u = x / longSeg; //hor
-                const v = y / latSeg; //ver
-                // vertices is composed of vx vy and vz
-                // and the u, v coords => for the texturing
-                vertices.push(vx, vy, vz, u, v);
-            }
-        }
-        return new Float32Array(vertices);
+    createStorageBuffer(size, mappedAtCreation=false) {
+        return this.device.createBuffer({
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        })
     }
 
-    createVertexBuffer(vertices) {
-        // to write vertices on the buffer
-        console.log(vertices)
-        const vertexBuff =  this.device.createBuffer({
-            size: vertices.byteLength,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    createVertexBuffer(size) {
+        return this.device.createBuffer({
+            size,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
         });
-        this.device.queue.writeBuffer(vertexBuff, 0, vertices);
-        return vertexBuff;
     }
 
     createSampler() {
@@ -135,8 +108,7 @@ export default class WebGPU {
         return this.device.createShaderModule({ code, label: path });
     }
 
-    async createRenderPipeline(shader) {
-        const module = await this.createShader(shader);
+    createRenderPipeline(vModule, vEntry, fModule, fEntry, cullMode="none") {
         return this.device.createRenderPipeline({
             layout: "auto",
             vertex: {
@@ -155,7 +127,10 @@ export default class WebGPU {
                 entryPoint: "fsMain",
                 targets: [{ format: this.format }]
             },
-            primitive: { topology: "triangle-list" }
+            primitive: {
+                topology: "triangle-list",
+                cullMode
+            }
         });        
     }
 

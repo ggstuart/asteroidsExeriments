@@ -1,3 +1,4 @@
+import Asteroid from './asteroid.js';
 import Camera from './camera.js';
 import Ship from './ship.js';
 
@@ -28,6 +29,7 @@ export default class AsteroidsGame {
         this.ctx = this.gpu.createContext(this.canvas, 'opaque')
         const camera = new Camera(this.canvas);
         this.ship = new Ship(camera);
+
     }
 
     resize() {
@@ -48,55 +50,22 @@ export default class AsteroidsGame {
             mvpBuffer : this.mvpBuffer
         })
 
-        this.angleX = 0;
-        this.angleY = 0;
-        // this.starBackgroundTexture = await this.gpu.createTexture('3d/images/stars.jpg');
-        // this.starBackgroundBuffer = this.gpu.createImageBuffer();
-        // this.starBackgroundSampler = this.gpu.createSampler();
+        this.asteroid = await Asteroid.withModule(this.gpu, "3d/shaders/asteroids.wgsl", 20);
 
-        // this.starBackgroundRenderPipeline = this.gpu.createRenderPipeline({
-        //     layout: "auto",
-        //     vertex: {
-        //         module,
-        //         entryPoint: "vsMain"
-        //     },
-        //     fragment: {
-        //         module,
-        //         entryPoint: "fsMain",
-        //         targets: this.ui.targets
-        //     },
-        //     primitive: { topology: "triangle-list" }
-        // });
-
-        // this.starBackgroundBindGroup = this.gpu.createBindGroup({
-        //     label: `update ${collection.label} bindGroup`,
-        //     layout: updatePipeline.getBindGroupLayout(1),
-        //     entries: [
-        //         { binding: 0, resource: { buffer: updateBuffer } },
-        //         { binding: 1, resource: { buffer: this.frameBuffer } }
-        //     ],
-        // });
-        //create asteroid data?
-        // this.background = this.createBackground('3d/images/stars.jpg');
-        // this.background.texture
-        // this.background.sampler
-        // this.background.buffer
-        // this.backgroundBuffer = ??
-        // this.backgroundSampler = ??
-
-        console.log(this.starBackground);
-        
     }
 
     update(elapsed) {
         this.ship.update(elapsed);
         // const viewProjMatrix = this.ship.projectionMatrix;
         this.starBackground.writeBuffer(this.ship.projectionMatrix)
+        this.asteroid.writeBuffer(this.ship.projectionMatrix)
     }
 
     draw() {
-        this.gpu.pass(this.ctx.getCurrentTexture().createView(), (pass) => {
+        console.debug("game draw");
+        this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
+            this.asteroid.draw(pass);
             // Draw other stuff
         });
     }
