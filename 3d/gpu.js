@@ -162,7 +162,7 @@ export default class WebGPU {
             // },
             colorAttachments: [{
                 view,
-                clearValue: [0, 1, 0, 1],
+                clearValue: [1, 1, 0, 1],
                 loadOp: "clear",
                 storeOp: "store"
             }]
