@@ -129,8 +129,8 @@ export default class AsteroidsGame {
 
     update(elapsed) {
         // to make automatic rotation (can be removed)
-        // this.angleY += elapsed * 0.1;
-        // this.angleX += elapsed * 0.05;
+        this.angleY += elapsed * 0.1;
+        this.angleX += elapsed * 0.05;
 
         // create identity matrix
         const model = mat4.create();

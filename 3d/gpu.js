@@ -1,3 +1,5 @@
+import Background from "./background.js";
+    
 export default class WebGPU {
 
     static async init() {
@@ -112,19 +114,24 @@ export default class WebGPU {
         return this.device.createRenderPipeline({
             layout: "auto",
             vertex: {
-                module,
-                entryPoint: "vsMain",
-                buffers: [{
-                arrayStride: 5 * 4, // 8 floats * 4 bytes
-                attributes: [
-                    { shaderLocation: 0, offset: 0, format: "float32x3" }, // position
-                    { shaderLocation: 1, offset: 3 * 4, format: "float32x2" }  // uv
+                module: vModule,
+                entryPoint: vEntry,
+                buffers: [
+                    {
+                        arrayStride: 12, // 3 * 4 bytes (vec3<f32>)
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: "float32x3"
+                            }
+                        ]
+                    }
                 ]
-            }]
             },
             fragment: {
-                module,
-                entryPoint: "fsMain",
+                module: fModule,
+                entryPoint: fEntry,
                 targets: [{ format: this.format }]
             },
             primitive: {
@@ -135,25 +142,24 @@ export default class WebGPU {
     }
 
 
-    async createBackground({image, shader, mvpBuffer}) {
-        const texture = await this.createTexture(image);
-        const sampler = this.createSampler();
-        const pipeline = await this.createRenderPipeline(shader);
-        const bindGroup = this.device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: {buffer: mvpBuffer} },
-                { binding: 1, resource: sampler },
-                { binding: 2, resource: texture.createView() }
-            ]
-        });
-        const vertexBuff = this.createVertexBuffer(this.createSphereVertices());
-        return new Background(pipeline, bindGroup, vertexBuff);
+    createBindGroup(...args) { 
+        return this.device.createBindGroup(...args);
     }
 
-    pass(view, callback) {
+
+    async createBackground({ image, shader }) {
+        return Background.fromPaths(this, { image, shader });
+    }
+
+    render(view, callback) {
         const encoder = this.device.createCommandEncoder();
         const renderPass = encoder.beginRenderPass({
+            // depthStencilAttachments: {
+            //     depthClearValue: 0.5,
+            //     depthLoadOp: 'clear',
+            //     depthStoreOp: "store",
+            //     view
+            // },
             colorAttachments: [{
                 view,
                 clearValue: [1, 1, 0, 1],
@@ -161,29 +167,10 @@ export default class WebGPU {
                 storeOp: "store"
             }]
         });
-        
-        // renderPass.setPipeline(renderPipeline);
-        // renderPass.setBindGroup(0, renderBindGroup);
-        // renderPass.draw(??, ??);
+
         callback(renderPass);
         renderPass.end();        
         this.device.queue.submit([encoder.finish()]);
     }
 
-}
-
-class Background {
-    constructor(pipeline, bindGroup, vertexBuffer) {
-        this.pipeline = pipeline;
-        this.bindGroup = bindGroup;
-        this.vertexBuffer = vertexBuffer;
-    }
-
-    draw(pass) {
-        pass.setPipeline(this.pipeline);
-        pass.setBindGroup(0, this.bindGroup);
-        pass.setVertexBuffer(0, this.vertexBuffer)
-        pass.draw(this.vertexBuffer.size / (5 * 4), 1, 0, 0);
-
-    }
 }

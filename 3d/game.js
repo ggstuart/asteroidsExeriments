@@ -42,16 +42,12 @@ export default class AsteroidsGame {
     // }
 
     async reset(nAsteroids, noise) {
-        this.mvpBuffer = this.gpu.createImageBuffer();
         this.starBackground = await this.gpu.createBackground({
-            // image: '3d/images/test.jpg', //it was a test with 3d photo !! you can test it
-            image: '3d/images/test.jpg',
-            shader: '3d/shaders/background.wgsl',
-            mvpBuffer : this.mvpBuffer
-        })
+            image: '3d/images/stars.jpg',
+            shader: '3d/shaders/cubeMap.wgsl'
+        });
 
         this.asteroid = await Asteroid.withModule(this.gpu, "3d/shaders/asteroids.wgsl", 20);
-
     }
 
     update(elapsed) {

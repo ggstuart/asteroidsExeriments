@@ -53,7 +53,7 @@ export default class WebGPU {
         })
     }
 
-    createSphereVertices(rad = 1, latSeg = 99997, longSeg = 16) {
+    createSphereVertices(rad = 1, latSeg = 150000, longSeg = 16) {
         // 5000  |||||||||||||||||||||||||||||||||||||||||||||||
         // 10 -- -- -- -- -- -- -- -- -- -- -- -- 
         // the purpose is to divide the sphere on parts 
@@ -129,7 +129,7 @@ export default class WebGPU {
                 entryPoint: "fsMain",
                 targets: [{ format: this.format }]
             },
-            primitive: { topology: "triangle-list" }
+            primitive: { topology: "triangle-list", cullMode: "none" }
         });        
     }
 
