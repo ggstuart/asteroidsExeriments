@@ -1,4 +1,4 @@
-import Asteroid from './asteroid.js';
+import Asteroids from './asteroid.js';
 import Camera from './camera.js';
 import Ship from './ship.js';
 
@@ -41,7 +41,7 @@ export default class AsteroidsGame {
             shader: '3d/shaders/cubeMap.wgsl'
         });
 
-        this.asteroid = await Asteroid.withModule(this.gpu, "3d/shaders/asteroids.wgsl", 20);
+        this.asteroids = await Asteroids.withModule(this.gpu, nAsteroids);
 
     }
 
@@ -49,14 +49,14 @@ export default class AsteroidsGame {
         this.ship.update(elapsed);
         // const viewProjMatrix = this.ship.projectionMatrix;
         this.starBackground.writeBuffer(this.ship.projectionMatrix)
-        this.asteroid.writeBuffer(this.ship.projectionMatrix)
+        this.asteroids.writeBuffer(this.ship.projectionMatrix)
     }
 
     draw() {
         console.debug("game draw");
         this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
-            this.asteroid.draw(pass);
+            this.asteroids.draw(pass);
             // Draw other stuff
         });
     }

@@ -8,7 +8,7 @@ window.addEventListener('resize', ev => {
     game.resize();
 })
 
-await game.reset(2, 0.4);
+await game.reset(200, 0.4);
 
 let p;
 function frame(ts) {
