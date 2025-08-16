@@ -8,33 +8,55 @@ export default class Asteroid {
 
     }
 
+    createVertex(theta, phi, r) {
+        return [
+            Math.sin(theta) * Math.cos(phi) * r,
+            Math.sin(theta) * Math.sin(phi) * r,
+            Math.cos(theta) * r,
+        ]
+    }
+
+    createVertices(segmentCount, size) {
+        const segmentAngle = 2 * Math.PI / segmentCount;
+        const coords = Array.from({length: segmentCount**2}, (_, i) => {
+            const theta1 = segmentAngle * Math.floor(i / segmentCount);
+            const phi1 = segmentAngle * (i % segmentCount);
+            console.log(theta1, phi1);
+            const theta2 = theta1 + segmentAngle;
+            const phi2 = phi1 + segmentAngle;
+            return [
+                this.createVertex(theta1, phi1, size),
+                this.createVertex(theta1, phi2, size),
+                this.createVertex(theta2, phi1, size),
+                this.createVertex(theta2, phi1, size),
+                this.createVertex(theta1, phi2, size),
+                this.createVertex(theta2, phi2, size),
+            ];
+        });
+        return new Float32Array(coords.flat(2));
+    }
+
     constructor(gpu, module, nAsteroids) {
         this.nAsteroids = nAsteroids;
         this.gpu = gpu;
-        this.vertices = new Float32Array([
-        // 36 vertices (12 triangles) for a cube, positions only
-            -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, // back
-            -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, // front
-            -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1, 1, -1, 1, 1, // top
-            -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, 1, // bottom
-            1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, // right
-            -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
-        ]);
+        this.vertices = this.createVertices(4, 1);
+        console.log(this.vertices);
+
+
+        
 
         this.instanceData = Array.from({length: nAsteroids}, _ => {
             let tm = mat4.identity();
             tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
             tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
             tm = mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.translate(tm, [0, 0, 80 + Math.random() * 20]);
+            tm = mat4.translate(tm, [0, 0, 10 + Math.random() * 20]);
+            tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
+            tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
+            tm = mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
             return Array.from(mat4.transpose(tm));
         }).flat();
         this.projectionBuffer = gpu.createUniformBuffer(144);
-
-        console.log(
-            this.instanceData.flat()
-        );
-
         this.vertexBuffer = gpu.createVertexBuffer(this.vertices.byteLength);
         new Float32Array(this.vertexBuffer.getMappedRange()).set(this.vertices);
         this.vertexBuffer.unmap();
@@ -43,7 +65,7 @@ export default class Asteroid {
         new Float32Array(this.asteroidBuffer.getMappedRange()).set(this.instanceData);
         this.asteroidBuffer.unmap();
 
-        this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain");
+        this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain", "back");
         this.bindGroup = gpu.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
             entries: [
@@ -65,7 +87,7 @@ export default class Asteroid {
         pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.bindGroup);
         pass.setVertexBuffer(0, this.vertexBuffer);
-        pass.draw(36, this.nAsteroids, 0, 0); // draw the cube
+        pass.draw(this.vertices.length / 3, this.nAsteroids, 0, 0); // draw the cube
     }
 
 }
