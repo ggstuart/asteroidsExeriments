@@ -1,11 +1,25 @@
 import { mat4 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js';
 
-export default class Asteroid {
+function randomlyOrient(tm) {
+    tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
+    tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
+    return mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
+}
 
-    static async withModule(gpu, path, nAsteroids) {
-        const module = await gpu.createShader(path);
-        return new Asteroid(gpu, module, nAsteroids);
+function randomlyOrientedDistantObject(distance) {
+    let tm = mat4.identity();
+    tm = randomlyOrient(tm)
+    tm = mat4.translate(tm, [0, 0, distance]);
+    tm = randomlyOrient(tm)
+    return tm;
+}
 
+
+export default class Asteroids {
+
+    static async withModule(gpu, nAsteroids) {
+        const module = await gpu.createShader("3d/shaders/asteroids.wgsl");
+        return new Asteroids(gpu, module, nAsteroids);
     }
 
     createVertex(theta, phi, r) {
@@ -21,7 +35,6 @@ export default class Asteroid {
         const coords = Array.from({length: segmentCount**2}, (_, i) => {
             const theta1 = segmentAngle * Math.floor(i / segmentCount);
             const phi1 = segmentAngle * (i % segmentCount);
-            console.log(theta1, phi1);
             const theta2 = theta1 + segmentAngle;
             const phi2 = phi1 + segmentAngle;
             return [
@@ -40,20 +53,8 @@ export default class Asteroid {
         this.nAsteroids = nAsteroids;
         this.gpu = gpu;
         this.vertices = this.createVertices(4, 1);
-        console.log(this.vertices);
-
-
-        
-
-        this.instanceData = Array.from({length: nAsteroids}, _ => {
-            let tm = mat4.identity();
-            tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.translate(tm, [0, 0, 10 + Math.random() * 20]);
-            tm = mat4.rotateX(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.rotateY(tm, 2 * Math.PI * (Math.random() - 0.5));
-            tm = mat4.rotateZ(tm, 2 * Math.PI * (Math.random() - 0.5));
+        this.instanceData = Array.from({ length: nAsteroids }, _ => {
+            let tm = randomlyOrientedDistantObject(10 + Math.random() * 20);
             return Array.from(mat4.transpose(tm));
         }).flat();
         this.projectionBuffer = gpu.createUniformBuffer(144);
