@@ -1,5 +1,7 @@
 import WebGPU from "./3d/gpu.js";
+// import WebGPU from "./3dSphericalBackground/gpu.js";
 import AsteroidsGame from "./3d/game.js";
+// import AsteroidsGame from "./3dSphericalBackground/game.js";
 
 const gpu = await WebGPU.init();
 const game = new AsteroidsGame(gpu);

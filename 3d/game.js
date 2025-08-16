@@ -2,6 +2,8 @@ import Asteroid from './asteroid.js';
 import Camera from './camera.js';
 import Ship from './ship.js';
 
+// this mat4 to use the matrix (we can do it manually)
+import { mat4 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
 function _createCanvas() {
     const canvas = document.createElement('canvas');
@@ -34,12 +36,19 @@ export default class AsteroidsGame {
         resize(this.canvas);
     }
 
-    async reset(nAsteroids, noise) {
 
+    // createBackground(path) {
+
+    // }
+
+    async reset(nAsteroids, noise) {
+        this.mvpBuffer = this.gpu.createImageBuffer();
         this.starBackground = await this.gpu.createBackground({
-            image: '3d/images/stars.jpg',
-            shader: '3d/shaders/cubeMap.wgsl'
-        });
+            // image: '3d/images/test.jpg', //it was a test with 3d photo !! you can test it
+            image: '3d/images/test.jpg',
+            shader: '3d/shaders/background.wgsl',
+            mvpBuffer : this.mvpBuffer
+        })
 
         this.asteroid = await Asteroid.withModule(this.gpu, "3d/shaders/asteroids.wgsl", 20);
 
