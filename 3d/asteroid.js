@@ -60,12 +60,12 @@ function sphericalVertices(segmentCount, size) {
 
 export default class Asteroids {
 
-    static async withModule(gpu, frameBuffer, projectionBuffer, nAsteroids, noise) {
+    static async withModule(gpu, {frameBuffer, projectionBuffer, nAsteroids, noise}) {
         const module = await gpu.createShader("3d/shaders/asteroids.wgsl");
-        return new Asteroids(gpu, frameBuffer, projectionBuffer, module, nAsteroids, noise);
+        return new Asteroids(gpu, {frameBuffer, projectionBuffer, module, nAsteroids, noise});
     }
 
-    constructor(gpu, frameBuffer, projectionBuffer, module, nAsteroids, noise) {
+    constructor(gpu, {frameBuffer, projectionBuffer, module, nAsteroids, noise}) {
         this.gpu = gpu;
         this.frameBuffer = frameBuffer
         this.projectionBuffer = projectionBuffer;
