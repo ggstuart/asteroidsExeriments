@@ -10,16 +10,18 @@ export default class Background {
         -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
     ]);
 
-    static async fromPaths(gpu, { image, shader }) {
+    static async fromPaths(gpu, { image, shader, projectionMatrixBuffer }) {
         const texture = await gpu.createCubeTexture([image, image, image, image, image, image], "rgba8unorm");
         const module = await gpu.createShader(shader);
-        return new Background(gpu, { texture, module })
+        return new Background(gpu, { texture, module, projectionMatrixBuffer })
+        
     }
 
-    constructor(gpu, { texture, module }) {
+    constructor(gpu, { texture, module, projectionMatrixBuffer }) {
         this.gpu = gpu;
         this.texture = texture;
-        this.buffer = gpu.createUniformBuffer(144);
+        // this.buffer = gpu.createUniformBuffer(144);
+        this.projectionMatrixBuffer = projectionMatrixBuffer;
         this.sampler = gpu.createSampler();
         this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain");
         this.vertexBuffer = gpu.device.createBuffer({
@@ -33,7 +35,7 @@ export default class Background {
         this.bindGroup = gpu.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
             entries: [
-                { binding: 0, resource: { buffer: this.buffer } },
+                { binding: 0, resource: { buffer: this.projectionMatrixBuffer } },
                 { binding: 1, resource: this.sampler },
                 { binding: 2, resource: this.texture.createView({ dimension: "cube" }) }
             ]
@@ -42,10 +44,6 @@ export default class Background {
 
     get queue() {
         return this.gpu.device.queue;
-    }
-
-    writeBuffer(viewProjMatrix) {
-        this.queue.writeBuffer(this.buffer, 0, viewProjMatrix.buffer, viewProjMatrix.byteOffset, 64);
     }
 
     draw(pass) {
