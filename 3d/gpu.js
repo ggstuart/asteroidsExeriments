@@ -81,11 +81,19 @@ export default class WebGPU {
         })
     }
 
-    createStorageBuffer(size, mappedAtCreation=false) {
+    createStorageBuffer(size, mappedAtCreation = false) {
         return this.device.createBuffer({
             size,
             mappedAtCreation,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        })
+    }
+
+    createCopyBuffer(size, mappedAtCreation = false) {
+        return this.device.createBuffer({
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
         })
     }
 
@@ -141,25 +149,42 @@ export default class WebGPU {
         });        
     }
 
+    createComputePipeline(module, entryPoint) {
+        return this.device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module,
+                entryPoint,
+            },
+        });        
+    }
 
     createBindGroup(...args) { 
         return this.device.createBindGroup(...args);
     }
 
 
-    async createBackground({ image, shader }) {
-        return Background.fromPaths(this, { image, shader });
+    async createBackground({ image, shader, projectionMatrixBuffer }) {
+        return Background.fromPaths(this, { image, shader, projectionMatrixBuffer });
+    }
+
+    writeBuffer(...args) {
+        this.device.queue.writeBuffer(...args);
+    }
+
+
+    compute(computeCallback, encoderCallback) {
+        const encoder = this.device.createCommandEncoder();
+        const computePass = encoder.beginComputePass();
+        computeCallback(computePass);
+        computePass.end();
+        encoderCallback(encoder);
+        this.device.queue.submit([encoder.finish()]);
     }
 
     render(view, callback) {
         const encoder = this.device.createCommandEncoder();
         const renderPass = encoder.beginRenderPass({
-            // depthStencilAttachments: {
-            //     depthClearValue: 0.5,
-            //     depthLoadOp: 'clear',
-            //     depthStoreOp: "store",
-            //     view
-            // },
             colorAttachments: [{
                 view,
                 clearValue: [1, 1, 0, 1],
@@ -167,10 +192,11 @@ export default class WebGPU {
                 storeOp: "store"
             }]
         });
-
         callback(renderPass);
         renderPass.end();        
         this.device.queue.submit([encoder.finish()]);
     }
+
+
 
 }
