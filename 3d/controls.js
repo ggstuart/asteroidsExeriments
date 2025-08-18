@@ -6,7 +6,8 @@ export default class Controls {
             'd': false, 
             'w': false,
             ArrowUp: false,
-            ArrowDown: false 
+            ArrowDown: false,
+            " ": false
         };
         window.addEventListener('keydown', ev => this.keys[ev.key] = true);
         window.addEventListener('keyup', ev => this.keys[ev.key] = false);
@@ -20,5 +21,8 @@ export default class Controls {
     }
     get fov() {
         return this.keys.ArrowUp - this.keys.ArrowDown
+    }
+    get thrust() { 
+        return this.keys[" "];
     }
 }
