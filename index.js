@@ -1,23 +1,37 @@
-import WebGPU from "./3d/gpu.js";
-// import WebGPU from "./3dSphericalBackground/gpu.js";
-import AsteroidsGame from "./3d/game.js";
-// import AsteroidsGame from "./3dSphericalBackground/game.js";
+// récupérer le paramètre mode dans l'URL
+const urlParams = new URLSearchParams(window.location.search);
+let mode = urlParams.get("mode") || "3d";
 
-const gpu = await WebGPU.init();
-const game = new AsteroidsGame(gpu);
+// mettre à jour le select pour refléter le mode actuel
+const select = document.getElementById("mode");
+select.value = mode;
 
-window.addEventListener('resize', ev => { 
-    game.resize();
-})
+// quand on change de mode → recharge la page avec le bon paramètre
+select.addEventListener("change", () => {
+  window.location.search = "?mode=" + select.value;
+});
 
-await game.reset(2, 0.4);
+async function startGame() {
+  // importer dynamiquement selon le mode choisi
+  const { default: WebGPU } = await import(`./${mode}/gpu.js`);
+  const { default: AsteroidsGame } = await import(`./${mode}/game.js`);
 
-let p;
-function frame(ts) {
+  const gpu = await WebGPU.init();
+  const game = new AsteroidsGame(gpu);
+
+  window.addEventListener("resize", () => game.resize());
+
+  await game.reset(2, 0.4);
+
+  let p;
+  function frame(ts) {
     const elapsed = (ts - p || 0) / 1000;
     p = ts;
     game.update(elapsed);
     game.draw();
     requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+startGame();

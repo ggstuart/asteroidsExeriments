@@ -5,11 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asteroids</title>
     <script type="module" src="index.js"></script>
+    <style>
+        body {
+        margin: 0;
+        background: #000;
+        color: white;
+        font-family: sans-serif;
+        }
+        #controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: rgba(0,0,0,0.6);
+        padding: 8px 12px;
+        border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-    
-
-
-
+    <div id="controls">
+        <label for="mode">Mode :</label>
+        <select id="mode">
+        <option value="3d">3D Classique</option>
+        <option value="3dSphericalBackground">3D + Spherical Background</option>
+        </select>
+    </div>
 </body>
 </html>
