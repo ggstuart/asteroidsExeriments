@@ -49,10 +49,12 @@ export default class AsteroidsGame {
 
         this.asteroids = await Asteroids.withModule(
             this.gpu,
-            this.frameBuffer,
-            this.projectionMatrixBuffer,
-            nAsteroids,
-            noise
+            {
+                frameBuffer: this.frameBuffer,
+                projectionBuffer: this.projectionMatrixBuffer,
+                nAsteroids,
+                noise
+            }
         );
 
     }
