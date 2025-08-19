@@ -78,8 +78,8 @@ export default class AsteroidsGame {
         this.mvpBuffer = this.gpu.createUniformBuffer(64);
         this.starBackground = await this.gpu.createBackground({
             // image: '3d/images/test.jpg', //it was a test with 3d photo !! you can test it
-            // image: '3dSphericalBackground/images/test2.jpg',
-            image: '3dSphericalBackground/images/test.jpg',
+            // image: '3dSphericalBackground/images/test.jpg',
+            image: '3dSphericalBackground/images/stars.jpg',
             shader: '3dSphericalBackground/shaders/background.wgsl',
             mvpBuffer : this.mvpBuffer
         })
