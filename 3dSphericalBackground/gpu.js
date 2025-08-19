@@ -45,11 +45,11 @@ export default class WebGPU {
         return texture;
     }
 
-    createImageBuffer() {
+    createUniformBuffer(size, mappedAtCreation=false) {
         return this.device.createBuffer({
-            size: 64,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            // mappedAtCreation: false
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
     }
 
@@ -106,11 +106,62 @@ export default class WebGPU {
         return {vertexBuff, indexBuffer, indexCount: verticesAndIndices.indices.length};
     }
 
+    createVertexBuffer(size) {
+        return this.device.createBuffer({
+            size,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
+        });
+    }
+
+    createStorageBuffer(size, mappedAtCreation = false) {
+        return this.device.createBuffer({
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+        })
+    }
+
+    createCopyBuffer(size, mappedAtCreation = false) {
+        return this.device.createBuffer({
+            size,
+            mappedAtCreation,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
+        })
+    }
+
+    createComputePipeline(module, entryPoint) {
+        return this.device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module,
+                entryPoint,
+            },
+        });        
+    }
+
+    createBindGroup(...args) { 
+        return this.device.createBindGroup(...args);
+    }
+
     createSampler() {
         return this.device.createSampler({
             magFilter: "linear",
             minFilter: "linear"
         })
+    }
+
+    writeBuffer(...args) {
+        this.device.queue.writeBuffer(...args);
+    }
+
+    compute(computeCallback, encoderCallback) {
+        const encoder = this.device.createCommandEncoder();
+        const computePass = encoder.beginComputePass();
+        computeCallback(computePass);
+        computePass.end();
+        encoderCallback(encoder);
+        this.device.queue.submit([encoder.finish()]);
     }
 
     async createShader(path) {
@@ -119,7 +170,7 @@ export default class WebGPU {
         return this.device.createShaderModule({ code, label: path });
     }
 
-    async createRenderPipeline(shader) {
+    async createRenderPipelineBackground(shader) {
         const module = await this.createShader(shader);
         return this.device.createRenderPipeline({
             layout: "auto",
@@ -143,11 +194,42 @@ export default class WebGPU {
         });        
     }
 
+    createRenderPipeline(vModule, vEntry, fModule, fEntry, cullMode="none") {
+        return this.device.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: vModule,
+                entryPoint: vEntry,
+                buffers: [
+                    {
+                        arrayStride: 12, // 3 * 4 bytes (vec3<f32>)
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: "float32x3"
+                            }
+                        ]
+                    }
+                ]
+            },
+            fragment: {
+                module: fModule,
+                entryPoint: fEntry,
+                targets: [{ format: this.format }]
+            },
+            primitive: {
+                topology: "triangle-list",
+                cullMode
+            }
+        });        
+    }
+
 
     async createBackground({image, shader, mvpBuffer}) {
         const texture = await this.createTexture(image);
         const sampler = this.createSampler();
-        const pipeline = await this.createRenderPipeline(shader);
+        const pipeline = await this.createRenderPipelineBackground(shader);
         const bindGroup = this.device.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
             entries: [
@@ -174,6 +256,21 @@ export default class WebGPU {
         // renderPass.setPipeline(renderPipeline);
         // renderPass.setBindGroup(0, renderBindGroup);
         // renderPass.draw(??, ??);
+        callback(renderPass);
+        renderPass.end();        
+        this.device.queue.submit([encoder.finish()]);
+    }
+
+    render(view, callback) {
+        const encoder = this.device.createCommandEncoder();
+        const renderPass = encoder.beginRenderPass({
+            colorAttachments: [{
+                view,
+                clearValue: [1, 1, 0, 1],
+                loadOp: "clear",
+                storeOp: "store"
+            }]
+        });
         callback(renderPass);
         renderPass.end();        
         this.device.queue.submit([encoder.finish()]);
