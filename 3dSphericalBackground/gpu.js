@@ -53,47 +53,57 @@ export default class WebGPU {
         })
     }
 
-    createSphereVertices(rad = 1, latSeg = 150000, longSeg = 16) {
-        // 5000  |||||||||||||||||||||||||||||||||||||||||||||||
-        // 10 -- -- -- -- -- -- -- -- -- -- -- -- 
-        // the purpose is to divide the sphere on parts 
-
+    createSphere(rad = 1, latSeg = 64, longSeg = 128) {
         const vertices = [];
+        const indices = [];
+
+        // Génération des sommets
         for (let y = 0; y <= latSeg; y++) {
-            // go from 0 to pi
-            const radAngle = y * Math.PI / latSeg;
-            const sinAngle = Math.sin(radAngle);
-            const cosAngle = Math.cos(radAngle);
-            // Now we fix the longitude segments
+            const teta = y * Math.PI / latSeg;
+            const sinTeta = Math.sin(teta);
+            const cosTeta = Math.cos(teta);
+
             for (let x = 0; x <= longSeg; x++) {
-                // go from 0 to 2 pi
                 const phi = x * 2 * Math.PI / longSeg;
                 const sinPhi = Math.sin(phi);
                 const cosPhi = Math.cos(phi);
 
-                const vx = rad * sinAngle * cosPhi; //Position X long
-                const vy = rad * cosAngle; //position Y lat
-                const vz = rad * sinAngle * sinPhi; //posuition z deep
-                //to map the image on the sphere 
-                const u = x / longSeg; //hor
-                const v = y / latSeg; //ver
-                // vertices is composed of vx vy and vz
-                // and the u, v coords => for the texturing
+                const vx = rad * sinTeta * cosPhi;
+                const vy = rad * cosTeta;
+                const vz = rad * sinTeta * sinPhi;
+
+                const u = x / longSeg;
+                const v = y / latSeg;
+
                 vertices.push(vx, vy, vz, u, v);
+
+                const i1 = y * (longSeg + 1) + x; 
+                const i2 = i1 + longSeg + 1; 
+                indices.push(i1, i2, i1 + 1);
+                indices.push(i1 + 1, i2, i2 + 1); 
             }
         }
-        return new Float32Array(vertices);
+
+        return {
+            vertices: new Float32Array(vertices),
+            indices: new Uint16Array(indices)
+        };
     }
 
-    createVertexBuffer(vertices) {
+    createIndexVertexBuffer(verticesAndIndices) {
         // to write vertices on the buffer
-        console.log(vertices)
+        console.log(verticesAndIndices.vertices)
         const vertexBuff =  this.device.createBuffer({
-            size: vertices.byteLength,
+            size: verticesAndIndices.vertices.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
         });
-        this.device.queue.writeBuffer(vertexBuff, 0, vertices);
-        return vertexBuff;
+        this.device.queue.writeBuffer(vertexBuff, 0, verticesAndIndices.vertices);
+        const indexBuffer = this.device.createBuffer({
+            size: verticesAndIndices.indices.byteLength,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+        });
+        this.device.queue.writeBuffer(indexBuffer, 0, verticesAndIndices.indices);
+        return {vertexBuff, indexBuffer, indexCount: verticesAndIndices.indices.length};
     }
 
     createSampler() {
@@ -146,8 +156,8 @@ export default class WebGPU {
                 { binding: 2, resource: texture.createView() }
             ]
         });
-        const vertexBuff = this.createVertexBuffer(this.createSphereVertices());
-        return new Background(pipeline, bindGroup, vertexBuff);
+        const buffers = this.createIndexVertexBuffer(this.createSphere());
+        return new Background(pipeline, bindGroup, buffers);
     }
 
     pass(view, callback) {
@@ -172,16 +182,20 @@ export default class WebGPU {
 }
 
 class Background {
-    constructor(pipeline, bindGroup, vertexBuffer) {
+    constructor(pipeline, bindGroup, buffer) {
         this.pipeline = pipeline;
         this.bindGroup = bindGroup;
-        this.vertexBuffer = vertexBuffer;
+        this.vertexBuffer = buffer.vertexBuff;
+        this.indexBuffer = buffer.indexBuffer;
+        this.indexBufferCount = buffer.indexCount;
     }
 
     draw(pass) {
         pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.bindGroup);
-        pass.setVertexBuffer(0, this.vertexBuffer)
+        pass.setVertexBuffer(0, this.vertexBuffer);
+        pass.setIndexBuffer(this.indexBuffer, "uint16");
+        pass.drawIndexed(this.indexBufferCount, 1, 0, 0, 0);
         pass.draw(this.vertexBuffer.size / (5 * 4), 1, 0, 0);
 
     }

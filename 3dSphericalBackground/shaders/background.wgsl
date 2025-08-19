@@ -6,8 +6,6 @@ struct VertexOutput {
 
 struct Background {
     mvpMatrix: mat4x4<f32>,
-    // normalMatrix: mat4x4<f32>,
-    // lightDir: vec4<f32>
 }
 
 @group(0) @binding(0) var<uniform> background: Background;

@@ -21,7 +21,7 @@ async function startGame() {
 
   window.addEventListener("resize", () => game.resize());
 
-  await game.reset(2, 0.4);
+  await game.reset(120, 0.4);
 
   let p;
   function frame(ts) {

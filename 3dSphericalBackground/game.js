@@ -19,15 +19,6 @@ export default class AsteroidsGame {
         this.gpu = gpu;       
         this.canvas = _createCanvas();
         this.ctx = this.gpu.createContext(this.canvas, 'opaque')
-        // create device?
-        // some external object?
-        
-        // this.device = ??? requires lots of stuff in this class
-
-        // this.renderer = new Renderer()? push details out to another class
-        // this.computer = new Computer()?
-
-        // this.renderPipeline = ???
 
         this.angleX = 0;
         this.angleY = 0;
@@ -72,16 +63,11 @@ export default class AsteroidsGame {
         });
     }
 
-
-
-    // createBackground(path) {
-
-    // }
-
     async reset(nAsteroids, noise) {
         this.mvpBuffer = this.gpu.createImageBuffer();
         this.starBackground = await this.gpu.createBackground({
             // image: '3d/images/test.jpg', //it was a test with 3d photo !! you can test it
+            // image: '3dSphericalBackground/images/test2.jpg',
             image: '3dSphericalBackground/images/test.jpg',
             shader: '3dSphericalBackground/shaders/background.wgsl',
             mvpBuffer : this.mvpBuffer
@@ -89,48 +75,14 @@ export default class AsteroidsGame {
 
         this.angleX = 0;
         this.angleY = 0;
-        // this.starBackgroundTexture = await this.gpu.createTexture('3dSphericalBackground/images/stars.jpg');
-        // this.starBackgroundBuffer = this.gpu.createImageBuffer();
-        // this.starBackgroundSampler = this.gpu.createSampler();
-
-        // this.starBackgroundRenderPipeline = this.gpu.createRenderPipeline({
-        //     layout: "auto",
-        //     vertex: {
-        //         module,
-        //         entryPoint: "vsMain"
-        //     },
-        //     fragment: {
-        //         module,
-        //         entryPoint: "fsMain",
-        //         targets: this.ui.targets
-        //     },
-        //     primitive: { topology: "triangle-list" }
-        // });
-
-        // this.starBackgroundBindGroup = this.gpu.createBindGroup({
-        //     label: `update ${collection.label} bindGroup`,
-        //     layout: updatePipeline.getBindGroupLayout(1),
-        //     entries: [
-        //         { binding: 0, resource: { buffer: updateBuffer } },
-        //         { binding: 1, resource: { buffer: this.frameBuffer } }
-        //     ],
-        // });
-        //create asteroid data?
-        // this.background = this.createBackground('3dSphericalBackground/images/stars.jpg');
-        // this.background.texture
-        // this.background.sampler
-        // this.background.buffer
-        // this.backgroundBuffer = ??
-        // this.backgroundSampler = ??
-
         console.log(this.starBackground);
         
     }
 
     update(elapsed) {
         // to make automatic rotation (can be removed)
-        this.angleY += elapsed * 0.1;
-        this.angleX += elapsed * 0.05;
+        // this.angleY += elapsed * 0.1;
+        // this.angleX += elapsed * 0.05;
 
         // create identity matrix
         const model = mat4.create();
@@ -167,11 +119,6 @@ export default class AsteroidsGame {
         this.gpu.pass(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
         });
-
-        // render?
     }
 
 }
-
-
-// ???
