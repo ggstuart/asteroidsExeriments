@@ -22,12 +22,12 @@ export default class Controls {
         return this.keys.s - this.keys.w;
     }
     get z() {
-        return this.keys.ArrowLeft - this.keys.ArrowRight
+        return this.keys.ArrowRight - this.keys.ArrowLeft
     }
     get fov() {
-        return this.keys.ArrowUp - this.keys.ArrowDown
+        return this.keys[" "];
     }
     get thrust() { 
-        return this.keys[" "];
+        return this.keys.ArrowUp - this.keys.ArrowDown
     }
 }
