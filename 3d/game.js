@@ -38,11 +38,6 @@ export default class AsteroidsGame {
         this.camera.resize(this.canvas);
     }
 
-
-    // createBackground(path) {
-
-    // }
-
     async reset(nAsteroids, noise) {
         this.starBackground = await this.gpu.createBackground({
             image: '3d/images/stars.jpg',
