@@ -30,6 +30,7 @@ export default class AsteroidsGame {
         this.ship = new Ship(this.camera);
         this.controls = new Controls();
         this.frameBuffer = gpu.createUniformBuffer(4);
+        this.resize();
 
         // this.angleX = 0;
         // this.angleY = 0;
@@ -74,6 +75,12 @@ export default class AsteroidsGame {
     //     });
     // }
 
+    resize() {
+        this.canvas.height = document.body.clientHeight;
+        this.canvas.width = document.body.clientWidth;
+        this.camera.resize(this.canvas);
+    }
+
     async reset(nAsteroids, noise) {
         this.mvpBuffer = this.gpu.createUniformBuffer(64);
         this.starBackground = await this.gpu.createBackground({
@@ -105,13 +112,23 @@ export default class AsteroidsGame {
         return mat4.multiply(this.camera.perspective, this.ship.location);
     }
 
+    updateFrameBuffer(elapsed) {
+        this.gpu.writeBuffer(this.frameBuffer, 0, new Float32Array([elapsed]));
+    }
+
     update(elapsed) {
+        this.updateFrameBuffer(elapsed);
+
         if(this.controls.fov) {
             this.camera.fov += this.controls.fov * elapsed;
         }
-        this.ship.x = this.controls.x * elapsed ** 2;
-        this.ship.y = this.controls.y * elapsed ** 2;
-        this.ship.z = this.controls.z * elapsed ** 2;
+        this.ship.pitchInput = this.controls.y; // w/s for pitch (w = negative pitch?)
+        this.ship.yawInput = this.controls.z; // ArrowLeft/Right for yaw
+        this.ship.rollInput = this.controls.x; // a/d for roll
+        this.ship.thrustInput = this.controls.thrust;
+        // this.ship.x = this.controls.x * elapsed ** 2;
+        // this.ship.y = this.controls.y * elapsed ** 2;
+        // this.ship.z = this.controls.z * elapsed ** 2;
         this.ship.update(elapsed);
 
         this.gpu.writeBuffer(this.frameBuffer, 0, new Float32Array([elapsed]));
