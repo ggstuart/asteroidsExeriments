@@ -3,13 +3,17 @@ import Background from "./background.js";
 export default class WebGPU {
 
     static async init() {
-        if (!navigator.gpu) {
-            throw new Error("WebGPU is not supported by this browser.");
+        try {
+            if (!navigator.gpu) { throw new Error("WebGPU is not supported by this browser."); }
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) throw new Error("Unable to get a GPU adapter.");
+            const device = await adapter.requestDevice();
+            return new WebGPU(device);
+        } catch (error) {
+            console.error("WebGPU initialization failed:", error.message);
+            alert("Failed to initialize WebGPU. Please check browser compatibility or try a different device.");
+            throw error;
         }
-        const adapter = await navigator.gpu.requestAdapter();
-        if (!adapter) throw new Error("Unable to get a GPU adapter.");
-        const device = await adapter.requestDevice();
-        return new WebGPU(device);
     }
 
     constructor(device) {
