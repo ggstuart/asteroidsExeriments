@@ -57,11 +57,14 @@ function sphericalVertices(segmentCount, size) {
     return new Float32Array(coords.flat(2));
 }
 
+const WG_SIZE = 64;
 
 export default class Asteroids {
 
     static async withModule(gpu, {frameBuffer, projectionBuffer, nAsteroids, noise}) {
-        const module = await gpu.createShader("3d/shaders/asteroids.wgsl");
+        const module = await gpu.createShader("3d/shaders/asteroids.wgsl", {
+            wgSize: WG_SIZE
+        });
         return new Asteroids(gpu, {frameBuffer, projectionBuffer, module, nAsteroids, noise});
     }
 
@@ -132,9 +135,10 @@ export default class Asteroids {
     }
 
     compute(pass) {
+        const nWorkgroups = Math.ceil(this.nAsteroids / WG_SIZE);
         pass.setPipeline(this.updatePipeline);
         pass.setBindGroup(1, this.updateBindGroup);
-        pass.dispatchWorkgroups(this.nAsteroids);
+        pass.dispatchWorkgroups(nWorkgroups);
     }
 
     copy(encoder) {
