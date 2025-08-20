@@ -62,13 +62,20 @@ export default class AsteroidsGame {
         return mat4.multiply(this.camera.perspective, this.ship.location);
     }
 
-    updateProjectionMatrix() {
+    updateProjectionMatrixBuffer() {
         const pm = this.projectionMatrix;
         this.gpu.writeBuffer(this.projectionMatrixBuffer, 0, pm.buffer, pm.byteOffset, 64);
     }
 
+    updateFrameBuffer(elapsed) {
+        this.gpu.writeBuffer(this.frameBuffer, 0, new Float32Array([elapsed]));
+    }
+
     update(elapsed) {
-        if(this.controls.fov) {
+
+        this.updateFrameBuffer(elapsed);
+
+        if (this.controls.fov) {
             this.camera.fov += this.controls.fov * elapsed;
         }
 
@@ -78,7 +85,6 @@ export default class AsteroidsGame {
         this.ship.thrustInput = this.controls.thrust;
         this.ship.update(elapsed);
 
-        this.gpu.writeBuffer(this.frameBuffer, 0, new Float32Array([elapsed]));
         
         this.gpu.compute((pass) => {
             this.asteroids.compute(pass);
@@ -89,7 +95,7 @@ export default class AsteroidsGame {
     }
 
     draw() {
-        this.updateProjectionMatrix();
+        this.updateProjectionMatrixBuffer();
         this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
             this.starBackground.draw(pass);
             this.asteroids.draw(pass);
