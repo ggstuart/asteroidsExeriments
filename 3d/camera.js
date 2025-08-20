@@ -19,7 +19,6 @@ export default class Camera {
     }
 
     set fov(newFov) {
-        console.debug("FOV:", newFov);
         this._fov = newFov;
         this._perspective = undefined;
     }
