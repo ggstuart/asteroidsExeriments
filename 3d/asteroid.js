@@ -110,9 +110,8 @@ export default class Asteroids {
         });
         
         // This holds the calculated asteroid locations to render
-        this.renderBuffer = gpu.createStorageBuffer(64 * nAsteroids, true);
-        new Float32Array(this.renderBuffer.getMappedRange()).set(this.locations);
-        this.renderBuffer.unmap();
+        // It will be populated with data from the compute shader 
+        this.renderBuffer = gpu.createStorageBuffer(64 * nAsteroids, false);
 
         // The render pipeline        
         this.renderPipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain", "back");
