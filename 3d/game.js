@@ -14,7 +14,7 @@ export default class AsteroidsGame {
         
         this.camera = new Camera(this.canvas);
         this.ship = new Ship(this.camera);
-
+        
         this.controls = new Controls();
         
         this.frameBuffer = gpu.createUniformBuffer(4);
@@ -71,9 +71,11 @@ export default class AsteroidsGame {
         if(this.controls.fov) {
             this.camera.fov += this.controls.fov * elapsed;
         }
-        this.ship.x = this.controls.x * elapsed ** 2;
-        this.ship.y = this.controls.y * elapsed ** 2;
-        this.ship.z = this.controls.z * elapsed ** 2;
+
+        this.ship.pitchInput = this.controls.y; // w/s for pitch (w = negative pitch?)
+        this.ship.yawInput = this.controls.z; // ArrowLeft/Right for yaw
+        this.ship.rollInput = this.controls.x; // a/d for roll
+        this.ship.thrustInput = this.controls.thrust;
         this.ship.update(elapsed);
 
         this.gpu.writeBuffer(this.frameBuffer, 0, new Float32Array([elapsed]));
