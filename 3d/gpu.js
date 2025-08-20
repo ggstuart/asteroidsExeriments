@@ -1,5 +1,5 @@
 import Background from "./background.js";
-
+    
 export default class WebGPU {
 
     static async init() {
@@ -191,7 +191,7 @@ export default class WebGPU {
         const renderPass = encoder.beginRenderPass({
             colorAttachments: [{
                 view,
-                clearValue: [0, 1, 0, 1],
+                clearValue: [1, 1, 0, 1],
                 loadOp: "clear",
                 storeOp: "store"
             }]
