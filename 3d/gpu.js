@@ -116,9 +116,12 @@ export default class WebGPU {
         })
     }
 
-    async createShader(path) {
+    async createShader(path, options) {
         const response = await fetch(path);
-        const code = await response.text();
+        let code = await response.text();
+        if(code.search(/@workgroup_size\(1\)/) != -1) {
+            code = code.replace("@workgroup_size(1)", `@workgroup_size(${options.wgSize})`)
+        }       
         return this.device.createShaderModule({ code, label: path });
     }
 
