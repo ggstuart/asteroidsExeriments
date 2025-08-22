@@ -109,7 +109,7 @@ export default class AsteroidsGame {
     }
 
     get projectionMatrix() {
-        return mat4.multiply(this.camera.perspective, this.ship.location);
+        return mat4.multiply(this.camera.perspective, this.ship.transformationMatrix);
     }
 
     updateFrameBuffer(elapsed) {

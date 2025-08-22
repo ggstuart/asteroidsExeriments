@@ -38,11 +38,12 @@ export default class AsteroidsGame {
         this.camera.resize(this.canvas);
     }
 
-    async reset(nAsteroids, noise) {
+    async reset(nAsteroids, noise, geometry) {
         this.starBackground = await this.gpu.createBackground({
             image: '3d/images/stars.jpg',
-            shader: '3d/shaders/cubeMap.wgsl',
-            projectionMatrixBuffer: this.projectionMatrixBuffer
+            shader: '3d/shaders/backgroundMap.wgsl',
+            projectionMatrixBuffer: this.projectionMatrixBuffer,
+            geometry
         });
 
         this.asteroids = await Asteroids.withModule(
@@ -58,7 +59,7 @@ export default class AsteroidsGame {
     }
 
     get projectionMatrix() {
-        return mat4.multiply(this.camera.perspective, this.ship.location);
+        return mat4.multiply(this.camera.perspective, this.ship.transformationMatrix);
     }
 
     updateProjectionMatrixBuffer() {

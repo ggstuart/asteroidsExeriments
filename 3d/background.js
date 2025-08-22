@@ -1,35 +1,29 @@
 export default class Background {
 
-    static cubeVertices = new Float32Array([
-        // 36 vertices (12 triangles) for a cube, positions only
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, // back
-        -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, // front
-        -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1, 1, -1, 1, 1, // top
-        -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, 1, // bottom
-        1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, // right
-        -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
-    ]);
+    
 
-    static async fromPaths(gpu, { image, shader, projectionMatrixBuffer }) {
+    static async fromPaths(gpu, { image, shader, projectionMatrixBuffer }, geometry) {
+        // !!problem in the creation of the texture !!
         const texture = await gpu.createCubeTexture([image, image, image, image, image, image], "rgba8unorm");
         const module = await gpu.createShader(shader);
-        return new Background(gpu, { texture, module, projectionMatrixBuffer })
+        console.log(geometry.vertices)
+        return new Background(gpu, { texture, module, projectionMatrixBuffer }, geometry)
         
     }
 
-    constructor(gpu, { texture, module, projectionMatrixBuffer }) {
+    constructor(gpu, { texture, module, projectionMatrixBuffer }, geometry) {
         this.gpu = gpu;
         this.texture = texture;
-        // this.buffer = gpu.createUniformBuffer(144);
+        this.geometry = geometry;
         this.projectionMatrixBuffer = projectionMatrixBuffer;
         this.sampler = gpu.createSampler();
         this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain");
         this.vertexBuffer = gpu.device.createBuffer({
-            size: Background.cubeVertices.byteLength,
+            size: this.geometry.vertices.byteLength,
             usage: GPUBufferUsage.VERTEX,
             mappedAtCreation: true
         });
-        new Float32Array(this.vertexBuffer.getMappedRange()).set(Background.cubeVertices);        
+        new Float32Array(this.vertexBuffer.getMappedRange()).set(this.geometry.vertices);        
         this.vertexBuffer.unmap();
 
         this.bindGroup = gpu.createBindGroup({
@@ -47,10 +41,12 @@ export default class Background {
     }
 
     draw(pass) {
+        console.log(this.geometry.vertices);
+        
         pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.bindGroup);
         pass.setVertexBuffer(0, this.vertexBuffer);
-        pass.draw(36, 1, 0, 0); // draw the cube
+        pass.draw(this.geometry.length , 1, 0, 0); // draw the cube
     }
 
 

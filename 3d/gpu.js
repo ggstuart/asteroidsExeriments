@@ -109,6 +109,10 @@ export default class WebGPU {
         });
     }
 
+    createIndexBuffer(size) {
+        
+    }
+
     createSampler() {
         return this.device.createSampler({
             magFilter: "linear",
@@ -171,8 +175,8 @@ export default class WebGPU {
     }
 
 
-    async createBackground({ image, shader, projectionMatrixBuffer }) {
-        return Background.fromPaths(this, { image, shader, projectionMatrixBuffer });
+    async createBackground({ image, shader, projectionMatrixBuffer, geometry }) {
+        return Background.fromPaths(this, { image, shader, projectionMatrixBuffer }, geometry);
     }
 
     writeBuffer(...args) {

@@ -1,5 +1,3 @@
-//cubeMap.wgsl
-
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) texCoord: vec3<f32>, // 3D direction for cube map
@@ -14,7 +12,9 @@ struct Background {
 @group(0) @binding(2) var texture: texture_cube<f32>;
 
 @vertex
-fn vsMain(@location(0) pos: vec3<f32>) -> VertexOutput {
+fn vsMain(
+        @location(0) pos: vec3<f32>
+    ) -> VertexOutput {
     var out: VertexOutput;
     // Transform cube vertices by MVP (includes translation to ship.position)
     out.position = background.mvpMatrix * vec4<f32>(pos, 1.0);
