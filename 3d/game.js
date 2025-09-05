@@ -1,5 +1,4 @@
 import { mat4 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js';
-
 import Asteroids from './asteroid.js';
 import Camera from './camera.js';
 import Ship from './ship.js';
@@ -7,18 +6,21 @@ import Controls from "./controls.js";
 
 
 export default class AsteroidsGame {
-    constructor(gpu) { 
-        this.gpu = gpu;       
+    constructor(gpu, backgroundType = "cubique") { 
+        this.gpu = gpu;
+        this.backgroundType = backgroundType;
+
         this.canvas = this._createCanvas();
-        this.ctx = this.gpu.createContext(this.canvas, 'opaque')
-        
+        this.ctx = this.gpu.createContext(this.canvas, 'opaque');
+
         this.camera = new Camera(this.canvas);
-        this.ship = new Ship(this.camera);
-        
+        this.ship = new Ship();
         this.controls = new Controls();
-        
+
+        this.skyBuffer = gpu.createUniformBuffer(64);
+        this.worldBuffer = gpu.createUniformBuffer(64);
+
         this.frameBuffer = gpu.createUniformBuffer(4);
-        this.projectionMatrixBuffer = gpu.createUniformBuffer(64);        
         this.resize();
     }
 
@@ -39,32 +41,51 @@ export default class AsteroidsGame {
     }
 
     async reset(nAsteroids, noise) {
+        if (this.backgroundType === "cubique") {
+            this.starBackground = await this.gpu.createBackground({
+                image: '3d/images/stars.jpg',
+                shader: '3d/shaders/backgroundMap.wgsl',
+                projectionMatrixBuffer: this.skyBuffer, 
+                backgroundType: "cubique"
+            });
+        } else {
+            this.starBackground = await this.gpu.createBackground({
+                image: '3d/images/test.jpg',
+                shader: '3d/shaders/background.wgsl',
+                mvpBuffer: this.skyBuffer, 
+                backgroundType: "spherique"
+            });
+        }
 
-        this.starBackground = await this.gpu.createBackground({
-            image: '3d/images/stars.jpg',
-            shader: '3d/shaders/cubeMap.wgsl',
-            projectionMatrixBuffer: this.projectionMatrixBuffer
+        // You can change the texture here, the website is https://ambientcg.com/list?category=Rock&sort=popular
+        this.asteroidTexture = await this.gpu.createTexture('3d/images/asteroid.jpg');
+
+
+        this.asteroids = await Asteroids.withModule(this.gpu, {
+            frameBuffer: this.frameBuffer,
+            projectionBuffer: this.worldBuffer,
+            nAsteroids,
+            noise,
+            texture: this.asteroidTexture
         });
-
-        this.asteroids = await Asteroids.withModule(
-            this.gpu,
-            {
-                frameBuffer: this.frameBuffer,
-                projectionBuffer: this.projectionMatrixBuffer,
-                nAsteroids,
-                noise
-            }
-        );
-
     }
 
-    get projectionMatrix() {
-        return mat4.multiply(this.camera.perspective, this.ship.location);
+    get projection() { return this.camera.perspective; }
+
+    get viewMatrix() {
+        return mat4.inverse(this.ship.transformationMatrix);
     }
 
-    updateProjectionMatrixBuffer() {
-        const pm = this.projectionMatrix;
-        this.gpu.writeBuffer(this.projectionMatrixBuffer, 0, pm.buffer, pm.byteOffset, 64);
+    get skyViewMatrix() {
+        return mat4.inverse(this.ship.orientation);
+    }
+
+    get worldVP() {
+        return mat4.multiply(this.projection, this.viewMatrix);
+    }
+
+    get skyVP() {
+        return mat4.multiply(this.projection, this.skyViewMatrix);
     }
 
     updateFrameBuffer(elapsed) {
@@ -72,35 +93,37 @@ export default class AsteroidsGame {
     }
 
     update(elapsed) {
-
         this.updateFrameBuffer(elapsed);
 
-        if (this.controls.fov) {
-            this.camera.fov += this.controls.fov * elapsed;
+        if (this.controls.fovZoomOut) {
+            const maxFov = 120 * Math.PI / 180;
+            this.camera.fov = Math.min(this.camera.fov + 1 * elapsed, maxFov);
+        }
+        if (this.controls.fovZoomIn) {
+            const minFov = 30 * Math.PI / 180;
+            this.camera.fov = Math.max(this.camera.fov - 1 * elapsed, minFov);
         }
 
-        this.ship.pitchInput = this.controls.y; // w/s for pitch (w = negative pitch?)
-        this.ship.yawInput = this.controls.z; // ArrowLeft/Right for yaw
-        this.ship.rollInput = this.controls.x; // a/d for roll
-        this.ship.thrustInput = this.controls.thrust;
+        this.ship.pitchInput  = this.controls.y;      
+        this.ship.yawInput    = this.controls.z;      
+        this.ship.rollInput   = this.controls.x;      
+        this.ship.thrustInput = this.controls.thrust; 
+
         this.ship.update(elapsed);
-
         
-        this.gpu.compute((pass) => {
-            this.asteroids.compute(pass);
-        }, (encoder) => {
-            this.asteroids.copy(encoder);
-        });
-
+        this.gpu.compute(pass => this.asteroids.compute(pass), encoder => this.asteroids.copy(encoder));
     }
 
     draw() {
-        this.updateProjectionMatrixBuffer();
-        this.gpu.render(this.ctx.getCurrentTexture().createView(), (pass) => {
+        const sky = this.skyVP;      
+        const vp  = this.worldVP;     
+
+        this.gpu.writeBuffer(this.skyBuffer,   0, sky.buffer,  sky.byteOffset,  64);
+        this.gpu.writeBuffer(this.worldBuffer, 0, vp.buffer,   vp.byteOffset,   64);
+
+        this.gpu.render(this.ctx.getCurrentTexture().createView(), pass => {
             this.starBackground.draw(pass);
-            this.asteroids.draw(pass);
+            this.asteroids.draw(pass);      
         });
     }
-
 }
-

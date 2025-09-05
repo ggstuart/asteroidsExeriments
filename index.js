@@ -1,21 +1,34 @@
-import WebGPU from "./3d/gpu.js";
-import AsteroidsGame from "./3d/game.js";
+const urlParams = new URLSearchParams(window.location.search);
+let backgroundType = urlParams.get("mode") || "cubique";
 
-const gpu = await WebGPU.init();
-const game = new AsteroidsGame(gpu);
+const select = document.getElementById("mode");
+select.value = backgroundType;
 
-window.addEventListener('resize', ev => { 
-    game.resize();
-})
+select.addEventListener("change", () => {
+    window.location.search = "?mode=" + select.value;
+});
 
-await game.reset(50, 0.4);
+async function startGame() {
+    const { default: WebGPU } = await import(`./3d/gpu.js`);
+    const { default: AsteroidsGame } = await import(`./3d/game.js`);
 
-let p;
-function frame(ts) {
-    const elapsed = (ts - p || 0) / 1000;
-    p = ts;
-    game.update(elapsed);
-    game.draw();
+    const gpu = await WebGPU.init();
+    const game = new AsteroidsGame(gpu, backgroundType);
+
+    window.addEventListener("resize", () => game.resize());
+
+    await game.reset(120, 0.4);
+
+    let p;
+    function frame(ts) {
+        const elapsed = (ts - p || 0) / 1000;
+        p = ts;
+        game.controls.updateCamera(game.camera, game.ship);
+        game.update(elapsed);
+        game.draw();
+        requestAnimationFrame(frame);
+    }
     requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+startGame();
