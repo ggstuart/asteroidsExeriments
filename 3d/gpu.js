@@ -1,5 +1,4 @@
-import Background from "./background.js";
-
+import { createSphere } from "./sphere.js";
 export default class WebGPU {
 
     static async init() {
@@ -31,66 +30,12 @@ export default class WebGPU {
         return ctx;
     }
 
-    async createCubeTexture(facePaths, format) {
-        const bitmaps = await Promise.all(facePaths.map(this.createSquareBitmap));
-        const size = bitmaps[0].width; // assume square faces
-        const texture = this.device.createTexture({
-            size: [size, size, 6],
-            format,
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-        });
-        for (let i = 0; i < 6; ++i) {
-            this.device.queue.copyExternalImageToTexture(
-                { source: bitmaps[i] },
-                { texture, origin: [0, 0, i] },
-                [size, size]
-            );
-        }
-        return texture;
-    }
-
-    async createSquareBitmap(path) {
-        const image = new Image();
-        image.src = path;
-        await image.decode();
-        const size = Math.min(image.width, image.height);
-        return createImageBitmap(image, 0, 0, size, size);
-    }
-
-    async createTexture(path, format) {
-        const image = new Image();
-        image.src = path;
-        await image.decode();
-        const source = await createImageBitmap(image);
-        const texture = this.device.createTexture({
-            size: [source.width, source.height, 1],
-            format,
-            usage: GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT            
-        });
-        this.device.queue.copyExternalImageToTexture(
-            {source}, 
-            {texture},
-            [source.width, source.height]
-        )
-        return texture;
-    }
-
     createUniformBuffer(size, mappedAtCreation=false) {
         return this.device.createBuffer({
             size,
             mappedAtCreation,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        })
-    }
-
-    createStorageBuffer(size, mappedAtCreation = false) {
-        return this.device.createBuffer({
-            size,
-            mappedAtCreation,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        })
+        });
     }
 
     createCopyBuffer(size, mappedAtCreation = false) {
@@ -98,14 +43,14 @@ export default class WebGPU {
             size,
             mappedAtCreation,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
-        })
+        });
     }
 
-    createVertexBuffer(size) {
+    createVertexBuffer(size, mappedAtCreation = false) {
         return this.device.createBuffer({
             size,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: true
+            mappedAtCreation
         });
     }
 
@@ -113,11 +58,14 @@ export default class WebGPU {
         return this.device.createSampler({
             magFilter: "linear",
             minFilter: "linear"
-        })
+        });
     }
 
     async createShader(path, options) {
+        console.log("Loading shader from", path);
         const response = await fetch(path);
+        console.log("response", response);
+        
         let code = await response.text();
         if(code.search(/@workgroup_size\(1\)/) != -1) {
             code = code.replace("@workgroup_size(1)", `@workgroup_size(${options.wgSize})`)
@@ -133,13 +81,11 @@ export default class WebGPU {
                 entryPoint: vEntry,
                 buffers: [
                     {
-                        arrayStride: 12, // 3 * 4 bytes (vec3<f32>)
+                        arrayStride: 32,
                         attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: "float32x3"
-                            }
+                            { shaderLocation: 0, format: "float32x3", offset: 0 },   
+                            { shaderLocation: 1, format: "float32x2", offset: 12 },  
+                            { shaderLocation: 2, format: "float32x3", offset: 20 },                              
                         ]
                     }
                 ]
@@ -149,36 +95,94 @@ export default class WebGPU {
                 entryPoint: fEntry,
                 targets: [{ format: this.format }]
             },
-            primitive: {
-                topology: "triangle-list",
-                cullMode
-            }
-        });        
+            primitive: { topology: "triangle-list", cullMode }
+        });
+    }
+
+    async createRenderPipelineBackground(module) {        
+        return this.device.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module,
+                entryPoint: "vsMain",
+                buffers: [{
+                    arrayStride: 5 * 4,
+                    attributes: [
+                        { shaderLocation: 0, offset: 0, format: "float32x3" },
+                        { shaderLocation: 1, offset: 3*4, format: "float32x2" }
+                    ]
+                }]
+            },
+            fragment: {
+                module,
+                entryPoint: "fsMain",
+                targets: [{ format: this.format }]
+            },
+            primitive: { topology: "triangle-list", cullMode: "none" }
+        });
     }
 
     createComputePipeline(module, entryPoint) {
         return this.device.createComputePipeline({
             layout: 'auto',
-            compute: {
-                module,
-                entryPoint,
-            },
-        });        
+            compute: { module, entryPoint }
+        });
     }
 
-    createBindGroup(...args) { 
+    createBindGroup(...args) {
         return this.device.createBindGroup(...args);
     }
 
+    async createTexture(path) {
+        const image = new Image();
+        image.src = path;
+        await image.decode();
+        const source = await createImageBitmap(image);
+        const texture = this.device.createTexture({
+            size: [source.width, source.height, 1],
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.device.queue.copyExternalImageToTexture({ source }, { texture }, [source.width, source.height]);
+        return texture;
+    }
 
-    async createBackground({ image, shader, projectionMatrixBuffer }) {
-        return Background.fromPaths(this, { image, shader, projectionMatrixBuffer });
+    async createCubeTexture(facePaths) {
+        const bitmaps = await Promise.all(facePaths.map(this.createSquareBitmap));
+        const size = bitmaps[0].width;
+        const texture = this.device.createTexture({
+            size: [size, size, 6],
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        for (let i = 0; i < 6; i++) {
+            this.device.queue.copyExternalImageToTexture({ source: bitmaps[i] }, { texture, origin: [0,0,i] }, [size,size]);
+        }
+        return texture;
+    }
+
+    async createSquareBitmap(path) {
+        const image = new Image();
+        image.src = path;
+        await image.decode();
+        const size = Math.min(image.width, image.height);
+        return createImageBitmap(image, 0, 0, size, size);
+    }    
+
+    createIndexVertexBuffer(verticesAndIndices) {
+        const vertexBuff = this.createVertexBuffer(verticesAndIndices.vertices.byteLength)
+        this.device.queue.writeBuffer(vertexBuff, 0, verticesAndIndices.vertices);
+        const indexBuffer = this.device.createBuffer({
+            size: verticesAndIndices.indices.byteLength,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+        });
+        this.device.queue.writeBuffer(indexBuffer, 0, verticesAndIndices.indices);
+        return { vertexBuff, indexBuffer, indexCount: verticesAndIndices.indices.length };
     }
 
     writeBuffer(...args) {
         this.device.queue.writeBuffer(...args);
     }
-
 
     compute(computeCallback, encoderCallback) {
         const encoder = this.device.createCommandEncoder();
@@ -194,16 +198,56 @@ export default class WebGPU {
         const renderPass = encoder.beginRenderPass({
             colorAttachments: [{
                 view,
-                clearValue: [0, 1, 0, 1],
+                clearValue: [1,1,0,1],
                 loadOp: "clear",
                 storeOp: "store"
             }]
         });
         callback(renderPass);
-        renderPass.end();        
+        renderPass.end();
         this.device.queue.submit([encoder.finish()]);
     }
 
+    async createBackground({ image, shader, projectionMatrixBuffer, mvpBuffer, backgroundType="cubique" }) {
+        if(backgroundType === "cubique") {
+            const BackgroundModule = await import("./background.js");
+            return BackgroundModule.default.fromPaths(this, { image, shader, projectionMatrixBuffer });
+        } else {
+            const texture = await this.createTexture(image);
+            const sampler = this.createSampler();
+            const module = await this.createShader(shader);
+            const pipeline = await this.createRenderPipelineBackground(module);
+            console.log("pipeline", pipeline);
+            
+            const bindGroup = this.device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: mvpBuffer } },
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: texture.createView() }
+                ]
+            });
+            const buffers = this.createIndexVertexBuffer(createSphere());
+            return new SphericalBackground(pipeline, bindGroup, buffers);
+        }
+    }
 
+}
 
+class SphericalBackground {
+    constructor(pipeline, bindGroup, buffers) {
+        this.pipeline = pipeline;
+        this.bindGroup = bindGroup;
+        this.vertexBuffer = buffers.vertexBuff;
+        this.indexBuffer = buffers.indexBuffer;
+        this.indexBufferCount = buffers.indexCount;
+    }
+
+    draw(pass) {
+        pass.setPipeline(this.pipeline);
+        pass.setBindGroup(0, this.bindGroup);
+        pass.setVertexBuffer(0, this.vertexBuffer);
+        pass.setIndexBuffer(this.indexBuffer, "uint16");
+        pass.drawIndexed(this.indexBufferCount, 1, 0, 0, 0);
+    }
 }

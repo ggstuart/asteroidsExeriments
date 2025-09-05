@@ -1,37 +1,28 @@
+import { cubeVertices } from "./cube.js";
+
 export default class Background {
-
-    static cubeVertices = new Float32Array([
-        // 36 vertices (12 triangles) for a cube, positions only
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, // back
-        -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, // front
-        -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1, 1, -1, 1, 1, // top
-        -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, 1, // bottom
-        1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, // right
-        -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, -1, 1  // left
-    ]);
-
-    static async fromPaths(gpu, { image, shader, projectionMatrixBuffer }) {
-        const texture = await gpu.createCubeTexture([image, image, image, image, image, image], "rgba8unorm");
+    static async fromPaths(gpu, { image, shader, projectionMatrixBuffer }, geometry) {
+        const texture = await gpu.createCubeTexture([image, image, image, image, image, image]);
+        console.log("shader", shader);
         const module = await gpu.createShader(shader);
-        return new Background(gpu, { texture, module, projectionMatrixBuffer })
+        console.log("module", module);
+        const pipeline = await gpu.createRenderPipelineBackground(module);
+
+        
+        return new Background(gpu, { texture, module, projectionMatrixBuffer, pipeline }, geometry)
         
     }
 
-    constructor(gpu, { texture, module, projectionMatrixBuffer }) {
+    constructor(gpu, { texture, module, projectionMatrixBuffer, pipeline }) {
         this.gpu = gpu;
         this.texture = texture;
-        // this.buffer = gpu.createUniformBuffer(144);
         this.projectionMatrixBuffer = projectionMatrixBuffer;
         this.sampler = gpu.createSampler();
-        this.pipeline = gpu.createRenderPipeline(module, "vsMain", module, "fsMain");
-        this.vertexBuffer = gpu.device.createBuffer({
-            size: Background.cubeVertices.byteLength,
-            usage: GPUBufferUsage.VERTEX,
-            mappedAtCreation: true
-        });
-        new Float32Array(this.vertexBuffer.getMappedRange()).set(Background.cubeVertices);        
-        this.vertexBuffer.unmap();
-
+        this.pipeline = pipeline;
+        this.vertexBuffer = gpu.createVertexBuffer(cubeVertices.byteLength)
+        this.gpu.device.queue.writeBuffer(this.vertexBuffer, 0, cubeVertices);
+        console.log("this.pipeline", this.pipeline);
+        
         this.bindGroup = gpu.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
             entries: [
@@ -46,11 +37,15 @@ export default class Background {
         return this.gpu.device.queue;
     }
 
-    draw(pass) {
+    writeBuffer(viewProjMatrix) {
+        this.queue.writeBuffer(this.projectionMatrixBuffer, 0, viewProjMatrix.buffer, viewProjMatrix.byteOffset, 64);
+    }
+
+    draw(pass) {        
         pass.setPipeline(this.pipeline);
         pass.setBindGroup(0, this.bindGroup);
         pass.setVertexBuffer(0, this.vertexBuffer);
-        pass.draw(36, 1, 0, 0); // draw the cube
+        pass.draw(36, 1, 0, 0);
     }
 
 
